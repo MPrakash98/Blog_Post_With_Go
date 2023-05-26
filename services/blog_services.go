@@ -1,27 +1,34 @@
-package controllers
+package services
 
 import (
+	"blog-post-api/helper"
+	"blog-post-api/interfaces"
+	"blog-post-api/models"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
 
-	"blog-post-api/db"
-	"blog-post-api/helper"
-	"blog-post-api/models"
-
 	"github.com/gorilla/mux"
 )
 
+type BlogPostStore struct {
+	BlogPostDB *sql.DB
+}
+
+func CreateBlogPostStore(db *sql.DB) interfaces.BlogPost {
+	return &BlogPostStore{
+		BlogPostDB: db,
+	}
+}
+
 // Get all posts
 
-// response and request handlers
-func GetPosts(w http.ResponseWriter, r *http.Request) {
-	db := db.SetupDB()
-
+func (BP *BlogPostStore) GetPosts(w http.ResponseWriter, r *http.Request) {
 	helper.PrintMessage("Getting posts...")
 
-	// Get all posts from posts table that don't have postID = "1"
-	rows, err := db.Query("SELECT * FROM posts")
+	// Get all posts from posts table
+	rows, err := BP.BlogPostDB.Query("SELECT * FROM posts")
 
 	// check errors
 	helper.CheckErr(err)
@@ -44,24 +51,22 @@ func GetPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var response = models.JsonResponse{Type: "success", Data: posts}
-
 	json.NewEncoder(w).Encode(response)
+	//return response, nil
 }
 
 // Get a post by ID
 
-// response and request handlers
-func GetPostByID(w http.ResponseWriter, r *http.Request) {
+func (BP *BlogPostStore) GetPostByID(w http.ResponseWriter, r *http.Request) {
 
 	params := mux.Vars(r)
 
 	postID := params["postID"]
 
-	db := db.SetupDB()
 	helper.PrintMessage("Getting posts...")
 
-	// Get all posts from posts table that don't have postID = "1"
-	rows, err := db.Query("SELECT * FROM posts where postID = $1", postID)
+	// Get all posts from posts table having postID = postId
+	rows, err := BP.BlogPostDB.Query("SELECT * FROM posts where postID = $1", postID)
 
 	// check errors
 	helper.CheckErr(err)
@@ -91,8 +96,10 @@ func GetPostByID(w http.ResponseWriter, r *http.Request) {
 
 // Create a post
 
-// response and request handlers
-func CreatePost(w http.ResponseWriter, r *http.Request) {
+func (BP *BlogPostStore) CreatePost(w http.ResponseWriter, r *http.Request) {
+	// postID := r.Context().Value("postID")
+	// post := r.PostFormValue("post")
+
 	postID := r.PostFormValue("postID")
 	post := r.PostFormValue("post")
 	// fmt.Println(post)
@@ -101,14 +108,13 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	if postID == "" || post == "" {
 		response = models.JsonResponse{Type: "error", Message: "You are missing postID or post parameter."}
 	} else {
-		db := db.SetupDB()
 
 		helper.PrintMessage("Inserting post into DB")
 
 		fmt.Println("Inserting new post with ID: " + postID + " and name: " + post)
 
 		var lastInsertID int
-		err := db.QueryRow("INSERT INTO posts(postID, post) VALUES($1, $2) returning id;", postID, post).Scan(&lastInsertID)
+		err := BP.BlogPostDB.QueryRow("INSERT INTO posts(postID, post) VALUES($1, $2) returning id;", postID, post).Scan(&lastInsertID)
 
 		// check errors
 		helper.CheckErr(err)
@@ -121,8 +127,7 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 
 // Delete a post
 
-// response and request handlers
-func DeletePost(w http.ResponseWriter, r *http.Request) {
+func (BP *BlogPostStore) DeletePost(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
 	postID := params["postID"]
@@ -132,11 +137,10 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 	if postID == "" {
 		response = models.JsonResponse{Type: "error", Message: "You are missing postID parameter."}
 	} else {
-		db := db.SetupDB()
 
 		helper.PrintMessage("Deleting post from DB")
 
-		_, err := db.Exec("DELETE FROM posts where postID = $1", postID)
+		_, err := BP.BlogPostDB.Exec("DELETE FROM posts where postID = $1", postID)
 
 		// check errors
 		helper.CheckErr(err)

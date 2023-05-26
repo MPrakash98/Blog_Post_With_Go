@@ -2,8 +2,10 @@ package main
 
 import (
 	_ "blog-post-api/db"
+	_ "blog-post-api/interfaces"
 	"blog-post-api/routes"
-	"encoding/json"
+	_ "blog-post-api/services"
+	_ "encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -19,11 +21,11 @@ func main() {
 	routes.BlogRoute(router) //add this
 	// Route handles & endpoints
 
-	router.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
-		rw.Header().Set("Content-Type", "application/json")
+	// router.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
+	// 	rw.Header().Set("Content-Type", "application/json")
 
-		json.NewEncoder(rw).Encode(map[string]string{"data": "Hello from Blog Post"})
-	}).Methods("GET")
+	// 	json.NewEncoder(rw).Encode(map[string]string{"data": "Hello from Blog Post"})
+	// }).Methods("GET")
 
 	// serve the app
 	fmt.Println("Server at 8000")
